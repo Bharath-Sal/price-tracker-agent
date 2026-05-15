@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.pytest_cache/
+.vscode/
+
+# Project Specific
+price_history.csv
+debug_*.py
+*.log
