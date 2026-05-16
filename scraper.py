@@ -1,75 +1,78 @@
 # scraper.py
 import time
-import requests
-import re
 from playwright.sync_api import sync_playwright
+import re
 
-def get_price(product_name: str) -> dict:
-    with sync_playwright() as p:
-        lat, lng = 17.3850, 78.4867
-        browser = p.chromium.launch(headless=True)
+# HYDERABAD GPS
+LAT, LNG = 17.3850, 78.4867
+
+def get_blinkit_price(page, product_name):
+    try:
+        print(f"📦 Checking Blinkit for {product_name}...")
+        page.goto(f"https://blinkit.com/s/?q={product_name}", timeout=60000)
+        page.wait_for_selector(".tw-line-clamp-2", timeout=15000)
         
-        # 🆔 PRO IDENTITY: Identifying as a real browser
+        price_elements = page.locator("div:has-text('₹')").all()
+        price = "N/A"
+        for el in price_elements:
+            txt = el.text_content().strip()
+            if '₹' in txt and any(char.isdigit() for char in txt) and "ADD" not in txt and len(txt) < 15:
+                price = txt
+                break
+        
+        name = page.locator(".tw-line-clamp-2").first.text_content().strip()
+        return {"store": "Blinkit", "name": name, "price": price}
+    except:
+        return None
+
+def get_zepto_price(page, product_name):
+    try:
+        print(f"📦 Checking Zepto for {product_name}...")
+        page.goto(f"https://www.zeptonow.com/search?query={product_name}", timeout=60000)
+        
+        # 🕒 Give it time to load results
+        time.sleep(8)
+        
+        # 🎯 VISUAL SELECTOR: Find the first element that looks like a price tag
+        # We look for ANY element containing ₹ that is near the top
+        price_locator = page.locator("xpath=//div[contains(text(), '₹')] | //span[contains(text(), '₹')] | //p[contains(text(), '₹')]").first
+        price_locator.wait_for(timeout=10000)
+        
+        price = price_locator.text_content().strip()
+        
+        # The name is usually in a heading or bold text nearby
+        # We'll look for the text in the same product card container
+        container = price_locator.locator("xpath=./ancestor::a")
+        full_text = container.text_content().strip()
+        
+        # Extract name (the first long string of text in the container)
+        name_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)', full_text)
+        name = name_match.group(0) if name_match else "Product Found"
+        
+        return {"store": "Zepto", "name": name, "price": price}
+    except Exception as e:
+        page.screenshot(path="zepto_error.png")
+        print(f"⚠️ Zepto Error: {e}")
+        return None
+
+def get_price(product_name: str) -> list:
+    results = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(
-            geolocation={"latitude": lat, "longitude": lng},
+            geolocation={"latitude": LAT, "longitude": LNG},
             permissions=["geolocation"],
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         page = context.new_page()
         
-        try:
-            encoded = requests.utils.quote(product_name)
-            url = f"https://comparify.pro/?query={encoded}"
-            print(f"📡 Navigating to {url}...")
-            page.goto(url, timeout=60000)
-            
-            # 🕒 WAIT: Wait specifically for a price to appear on the screen
-            try:
-                page.wait_for_selector("text=₹", timeout=20000)
-                time.sleep(5) # Extra buffer for all stores to load
-            except:
-                print(f"⚠️ Timeout waiting for prices for {product_name}")
-                return {"product": product_name, "cheapest_price": "NOT FOUND", "store": "UNKNOWN"}
-
-            # 🔍 SCAN: Look at all results
-            results = []
-            price_elements = page.locator("text=₹").all()
-            
-            for el in price_elements:
-                try:
-                    price_text = el.text_content().strip()
-                    # Go up to find the context
-                    container = el.locator("xpath=../../..")
-                    content = container.text_content().lower()
-                    
-                    # 🛡️ MATCH CHECK: Use a simpler search
-                    # We check if at least one word from your search is in the result
-                    search_words = product_name.lower().split()
-                    if any(word in content for word in search_words):
-                        store = "Unknown"
-                        for s in ["Blinkit", "Zepto", "Instamart", "BigBasket", "JioMart", "Flipkart", "Amazon", "DMart"]:
-                            if s.lower() in content:
-                                store = s
-                                break
-                        
-                        clean_price = int(''.join(filter(str.isdigit, price_text)))
-                        if clean_price > 5: # Ignore suspicious low prices
-                            results.append({"price": price_text, "val": clean_price, "store": store})
-                except:
-                    continue
-
-            if results:
-                cheapest = min(results, key=lambda x: x['val'])
-                return {
-                    "product": product_name, 
-                    "cheapest_price": cheapest['price'], 
-                    "store": cheapest['store']
-                }
-            
-            return {"product": product_name, "cheapest_price": "NOT FOUND", "store": "UNKNOWN"}
-
-        except Exception as e:
-            print(f"❌ Scraper Error: {e}")
-            return {"product": product_name, "cheapest_price": "ERROR", "store": "UNKNOWN"}
-        finally:
-            browser.close()
+        # Check Blinkit
+        b_res = get_blinkit_price(page, product_name)
+        if b_res: results.append(b_res)
+        
+        # Check Zepto
+        z_res = get_zepto_price(page, product_name)
+        if z_res: results.append(z_res)
+        
+        browser.close()
+    return results
