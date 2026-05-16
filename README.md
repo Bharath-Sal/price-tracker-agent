@@ -1,73 +1,57 @@
-# 🛒 Price Tracker Agent: A Modular AI-Powered Scraper
+# 🛒 Interactive Price Tracker Agent (v2.0)
 
-An automated market research agent that tracks grocery prices across multiple vendors (Blinkit, Zepto, BigBasket, etc.) and delivers a consolidated report via email.
+An autonomous, conversational AI agent that tracks market prices across multiple vendors and interacts via secure email.
 
 ---
 
 ## 🚀 Overview
-This project is an **Autonomous Price Tracking Agent** designed to bypass modern web restrictions. It uses headless browser automation to simulate human behavior, extracts real-time pricing data, and handles secure notification delivery.
+This project has evolved from a simple scraper into a **Modular Interactive System**. It doesn't just find prices—it listens for your commands, organizes data, and reports back autonomously.
 
 ### Key Features
-*   **Geolocation Emulation:** Bypasses regional content blocks by spoofing GPS coordinates.
-*   **Multi-Vendor Scraping:** Dynamically identifies store names and prices from DOM structures.
-*   **Secure Notifications:** Uses SMTP with SSL encryption for automated email reporting.
-*   **Environment Isolation:** Implements `.env` for secret management and `venv` for dependency control.
+*   **Interactive Mode:** Reply to the agent's daily email to request specific price checks.
+*   **Intelligent Sorting:** Automatically sorts results from cheapest to most expensive.
+*   **Geolocation Spoofing:** Bypasses regional blocks using Playwright's browser context.
+*   **Persistence:** Saves every scan to `price_history.csv` to track long-term trends.
+*   **Secure Secrets:** Uses `.env` and `.gitignore` to protect your email credentials.
 
 ---
 
-## 🛠️ Technical Stack
-*   **Language:** Python 3.x
-*   **Automation:** Playwright (Chromium)
-*   **Communication:** SMTP (Simple Mail Transfer Protocol)
-*   **Version Control:** Git & GitHub
-*   **Security:** Dotenv (Secret Management)
+## 🛠️ Project Architecture
+1. **`run_agent.py`**: The Orchestrator (handles command-line arguments and CSV logging).
+2. **`send_prompt.py`**: The "Daily Alarm" that asks you what to buy.
+3. **`listener.py`**: The "Ear" that reads your email replies using IMAP.
+4. **`scraper.py`**: The "Researcher" that performs headless browser automation.
+5. **`emailer.py`**: The "Messenger" that handles SMTP/SSL email delivery.
 
 ---
 
-## 📂 Project Structure
-*   `run_agent.py`: The Orchestrator (Manager) that runs the end-to-end workflow.
-*   `scraper.py`: The Researcher (Eyes) that handles browser automation and data extraction.
-*   `emailer.py`: The Messenger (Notifier) that manages SMTP connections and email delivery.
-*   `.env`: The Vault (Secrets) where sensitive API keys and passwords reside.
-*   `.gitignore`: The Security Guard that prevents sensitive files from being leaked to GitHub.
+## ⚙️ Setup & Installation
 
----
-
-## ⚙️ Installation & Setup
-
-1. **Clone the repository:**
+1. **Clone & Environment:**
    ```bash
    git clone https://github.com/Bharath-Sal/price-tracker-agent.git
    cd price_tracker
-   ```
-
-2. **Create a Virtual Environment:**
-   ```bash
    python3 -m venv venv
    source venv/bin/activate
-   ```
-
-3. **Install Dependencies:**
-   ```bash
    pip install playwright python-dotenv
    playwright install chromium
    ```
 
-4. **Configure Secrets:**
-   Create a `.env` file in the root directory:
+2. **Configuration:**
+   Create a `.env` file with your Google App Password:
    ```env
    EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_app_password
+   EMAIL_PASS=your_google_app_password
    ```
 
 ---
 
-## 🚦 Usage
-Run the main agent script:
-```bash
-python run_agent.py
-```
+## 🚦 How to Use
+*   **Automated Mode:** The agent runs via Cron (10:00 AM Prompt, 10:30 AM Listen).
+*   **Manual Scan:** `python run_agent.py "Product Name"`
+*   **Check Inbox:** `python listener.py`
 
-## 🛡️ Security Best Practices
-*   **App Passwords:** Do not use your primary Gmail password. Generate an [App Password](https://myaccount.google.com/apppasswords).
-*   **Environment Variables:** Never commit your `.env` file to version control.
+---
+
+## 🌍 Open Source
+This is a DevOps-ready project. Contributions are welcome! Future updates will include Cloud Deployment (AWS) and LLM-based product matching.
