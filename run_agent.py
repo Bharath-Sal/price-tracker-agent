@@ -45,7 +45,12 @@ def get_cheapest_deal(store_results):
 
 def run_price_tracker():
     if len(sys.argv) > 1:
-        products = sys.argv[1:]
+        products = []
+        for arg in sys.argv[1:]:
+            if "," in arg or "\n" in arg:
+                products.extend([i.strip() for i in re.split(r'[,\n]', arg) if i.strip()])
+            else:
+                products.append(arg.strip())
         print(f"🎯 Targeted Scan: {products}")
     else:
         products = ["Amul Milk", "Ruchi Gold Oil"]
