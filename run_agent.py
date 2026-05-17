@@ -2,6 +2,7 @@
 import time
 import os
 import sys
+import re
 import csv  # <--- New Connection: Talking to Data Files
 from datetime import datetime
 from scraper import get_price
@@ -19,6 +20,29 @@ def save_to_history(product, price, store):
         # Write the data
         writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), product, price, store])
 
+def get_cheapest_deal(store_results):
+    if not store_results:
+        return "NOT FOUND", "N/A"
+    
+    cheapest_price = None
+    cheapest_store = None
+    
+    for res in store_results:
+        price_str = res['price']
+        # Extract digits from price string (e.g. "₹122 ₹153" -> ["122", "153"])
+        digits = re.findall(r'\d+', price_str)
+        if not digits:
+            continue
+        price_val = int(digits[0])
+        
+        if cheapest_price is None or price_val < cheapest_price:
+            cheapest_price = price_val
+            cheapest_store = res['store']
+            
+    if cheapest_price is not None:
+        return f"₹{cheapest_price}", cheapest_store
+    return "NOT FOUND", "N/A"
+
 def run_price_tracker():
     if len(sys.argv) > 1:
         products = sys.argv[1:]
@@ -30,9 +54,8 @@ def run_price_tracker():
     report = "🛒 --- PRICE REPORT ---\n\n"
     
     for item in products:
-        data = get_price(item)
-        price = data['cheapest_price']
-        store = data['store']
+        store_results = get_price(item)
+        price, store = get_cheapest_deal(store_results)
         
         line = f"✅ {item}: {price} at {store}\n"
         report += line
